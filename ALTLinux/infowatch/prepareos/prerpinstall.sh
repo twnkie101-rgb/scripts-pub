@@ -13,7 +13,7 @@ read -p "Введите имя администратора домена: " admi
 read -p "Введите пароль админитратора домена: " admin_pass
 
 
-hostnamect set-hostname $(fqdn) 
+hostnamectl set-hostname $fqdn 
 
 PAM_FILE="/etc/pam.d/system-auth"
 PAM_LINE="session\trequired\tpam_mkhomedir.so skel=/etc/skel umask=0077"
