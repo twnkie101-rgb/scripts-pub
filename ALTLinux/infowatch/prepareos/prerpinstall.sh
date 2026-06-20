@@ -38,11 +38,11 @@ apt-get update &> /dev/null
 apt-get install sudo task-auth-ad-sssd oddjob-mkhomedir -y &> /dev/null
 
 echo "WHEEL_USERS ALL=(ALL:ALL) ALL" | tee -a /etc/sudoers &> /dev/null
-echo "администратор@iwtm.domen ALL=(ALL:ALL) ALL" | tee -a /etc/sudoers &> /dev/null
+echo -e "$(admin-name)@(domain) ALL=(ALL:ALL) ALL" | tee -a /etc/sudoers &> /dev/null
 
-usermod -aG wheel xadmin
+usermod -aG wheel $(localadmin)
 
-system-auth write ad iwtm.domen $(hostname -s) IWTM 'администратор' 'Master1!' &> /dev/null
+system-auth write ad $(domain) $(hostname -s) $(domain-part-upper) '$(admin-name)' '$(admin-pass)' &> /dev/null
 
 systemctl enable --now oddjobd &> /dev/null
 
