@@ -44,7 +44,7 @@ sed -i "/\b127.0.1.1\b/d" /etc/hosts
 
 echo -e "127.0.1.1\t$(hostname -f)\t$(hostname -s)" | tee -a /etc/hosts 
 
-apt-get update &> 
+apt-get update 
 apt-get install sudo task-auth-ad-sssd oddjob-mkhomedir -y 
 
 echo "WHEEL_USERS ALL=(ALL:ALL) ALL" | tee -a /etc/sudoers 
