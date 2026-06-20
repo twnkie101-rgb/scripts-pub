@@ -42,20 +42,20 @@ sed -i -E 's/^#?PermitEmptyPasswords.*/PermitEmptyPasswords no/' "$SSH_FILE"
  
 sed -i "/\b127.0.1.1\b/d" /etc/hosts
 
-echo -e "127.0.1.1\t$(hostname -f)\t$(hostname -s)" | tee -a /etc/hosts &> /dev/null
+echo -e "127.0.1.1\t$(hostname -f)\t$(hostname -s)" | tee -a /etc/hosts 
 
-apt-get update &> /dev/null
-apt-get install sudo task-auth-ad-sssd oddjob-mkhomedir -y &> /dev/null
+apt-get update &> 
+apt-get install sudo task-auth-ad-sssd oddjob-mkhomedir -y 
 
-echo "WHEEL_USERS ALL=(ALL:ALL) ALL" | tee -a /etc/sudoers &> /dev/null
-echo -e "${admin_name}@${domain} ALL=(ALL:ALL) ALL" | tee -a /etc/sudoers &> /dev/null
+echo "WHEEL_USERS ALL=(ALL:ALL) ALL" | tee -a /etc/sudoers 
+echo -e "${admin_name}@${domain} ALL=(ALL:ALL) ALL" | tee -a /etc/sudoers 
 
 usermod -aG wheel $localadmin
 
-system-auth write ad "$domain" "$(hostname -s)" "$domain_upper" "$admin_name" "$admin_pass" &> /dev/null
+system-auth write ad "$domain" "$(hostname -s)" "$domain_upper" "$admin_name" "$admin_pass" 
 
-systemctl enable --now oddjobd &> /dev/null
+systemctl enable --now oddjobd 
 
-grep -q "pam_mkhomedir.so" "$PAM_FILE" || echo -e "$PAM_LINE" | tee -a "$PAM_FILE" &> /dev/null
+grep -q "pam_mkhomedir.so" "$PAM_FILE" || echo -e "$PAM_LINE" | tee -a "$PAM_FILE" 
 
 echo "Скрипт выполнен"
