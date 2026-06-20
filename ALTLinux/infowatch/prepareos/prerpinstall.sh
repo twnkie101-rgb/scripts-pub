@@ -50,7 +50,7 @@ apt-get install sudo task-auth-ad-sssd oddjob-mkhomedir -y &> /dev/null
 echo "WHEEL_USERS ALL=(ALL:ALL) ALL" | tee -a /etc/sudoers &> /dev/null
 echo -e "${admin_name}@${domain} ALL=(ALL:ALL) ALL" | tee -a /etc/sudoers &> /dev/null
 
-usermod -aG wheel $(localadmin)
+usermod -aG wheel $localadmin
 
 system-auth write ad "$domain" "$(hostname -s)" "$domain_upper" "$admin_name" "$admin_pass" &> /dev/null
 
