@@ -214,11 +214,11 @@ systemctl daemon-reload
 systemctl enable pgagent
 systemctl start pgagent
 
-sed -i "s|local\tall\t\tall\t\t\t\t\ttrust|local\tall\t\tall\t\t\t\t\tmd5|" /u01/postgres/pg_hba.conf
+sed -i "s/^local[[:space:]]\+all[[:space:]]\+all[[:space:]]\+trust/local\tall\t\tall\t\t\t\t\tmd5/" /u01/postgres/pg_hba.conf
 
-sed -i "s|host\tall\t\tall\t\t127.0.0.1/32\t\ttrust|host\tall\t\tall\t\t127.0.0.1/32\t\tmd5|" /u01/postgres/pg_hba.conf
+sed -i "s/^host[[:space:]]\+all[[:space:]]\+all[[:space:]]\+127.0.0.1\/32[[:space:]]\+trust/host\tall\t\tall\t\t127.0.0.1\/32\t\tmd5/" /u01/postgres/pg_hba.conf
 
-sed -i "s|host\tall\t\tall\t\t::1/128\t\ttrust|host\tall\t\tall\t\t::1/128\t\tmd5|" /u01/postgres/pg_hba.conf
+sed -i "s/^host[[:space:]]\+all[[:space:]]\+all[[:space:]]\+::1\/128[[:space:]]\+trust/host\tall\t\tall\t\t::1\/128\t\t\tmd5/" /u01/postgres/pg_hba.conf
 
 systemctl restart postgresql
 systemctl restart pgagent
