@@ -58,4 +58,4 @@ systemctl enable --now oddjobd
 
 grep -q "pam_mkhomedir.so" "$PAM_FILE" || echo -e "$PAM_LINE" | tee -a "$PAM_FILE" 
 
-echo "Скрипт выполнен"
+#echo "Скрипт выполнен"
