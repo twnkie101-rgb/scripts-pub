@@ -220,5 +220,5 @@ sed -i "s|host\tall\t\tall\t\t127.0.0.1/32\t\ttrust|host\tall\t\tall\t\t127.0.0.
 
 sed -i "s|host\tall\t\tall\t\t::1/128\t\ttrust|host\tall\t\tall\t\t::1/128\t\tmd5|" /u01/postgres/pg_hba.conf
 
-systemctl reload postgresql
-systemctl reload pgagent
+systemctl restart postgresql
+systemctl restart pgagent
