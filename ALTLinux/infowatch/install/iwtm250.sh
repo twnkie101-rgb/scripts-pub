@@ -146,11 +146,11 @@ useradd -g pgagent -r -m -s /bin/bash -c "pgAgent Job Schedule" pgagent
 
 mkdir -p /home/pgagent
 cat << EOF > /home/pgagent/.pgpass
-127.0.0.1:5433:postgres:postgres:${postgres_pass}
+*:5433:postgres:postgres:${postgres_pass}
 EOF
 
 cat << EOF > /var/lib/pgsql/.pgpass
-127.0.0.1:5433:postgres:postgres:${postgres_pass}
+*:5433:postgres:postgres:${postgres_pass}
 EOF
 
 chmod 0600 /var/lib/pgsql/.pgpass
