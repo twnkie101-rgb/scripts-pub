@@ -111,6 +111,7 @@ sed -i "s|host[[:space:]]*all[[:space:]]*all[[:space:]]*127.0.0.1/32[[:space:]]*
 
 sed -i "s|host[[:space:]]*all[[:space:]]*all[[:space:]]*::1/128[[:space:]]*ident|host\tall\t\tall\t\t::1/128\t\ttrust|" /u01/postgres/pg_hba.conf
 
+sed -i '/replication/s/^/# /' /u01/postgres/pg_hba.conf
 # Подключение к БД только локальное?
 #echo "# Enable not local access" >> /u01/postgres/pg_hba.conf
 #echo -e "host\tpostgres\tall\t\t0.0.0.0/0\t\tmd5" >> /u01/postgres/pg_hba.conf
