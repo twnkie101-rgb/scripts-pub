@@ -20,6 +20,8 @@ EOF
 
 sysctl -p
 
+apt-get update
+
 apt-get install sudo conntrack-tools socat podman unzip python3 python3-module-yaml python3-modules-sqlite3 postgresql15-server postgresql15-contrib kubernetes1.31-kubeadm kubernetes1.31-kubelet kubernetes1.31-crio cri-tools1.31 -y
 
 podman pull registry.altlinux.org/k8s-c10f2/kube-apiserver:v1.31.1
