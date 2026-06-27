@@ -55,7 +55,7 @@ localAPIEndpoint:
   bindPort: 6443
 nodeRegistration:
   criSocket: unix:///run/crio/crio.sock
-  name: ${hostname}
+  name: ${HOSTNAME}
   ignorePreflightErrors:
     - Swap
   taints: null
