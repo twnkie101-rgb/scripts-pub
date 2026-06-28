@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [ "$EUID" -ne 0 ]; then
+    echo "Ошибка: Этот скрипт нужно запускать от имени root!"
+    exit 1
+fi
+
+
 cat << 'EOF' > /etc/apt/sources.list.d/altsp.list
 # ALT Certified 10
 #rpm [cert8] ftp://update.altsp.su/pub/distributions/ALTLinux c10f2/branch/x86_64 classic gostcrypto
@@ -22,7 +28,9 @@ sysctl -p
 
 apt-get update
 
-apt-get install sudo conntrack-tools socat podman unzip python3 python3-module-yaml python3-modules-sqlite3 postgresql15-server postgresql15-contrib kubernetes1.31-kubeadm kubernetes1.31-kubelet kubernetes1.31-crio cri-tools1.31 -y
+apt-get install sudo conntrack-tools socat podman unzip runc python3 python3-module-yaml python3-modules-sqlite3 postgresql15-server postgresql15-contrib kubernetes1.31-kubeadm kubernetes1.31-kubelet kubernetes1.31-crio cri-tools1.31 -y
+
+rm -rf /etc/cni/net.d/*
 
 podman pull registry.altlinux.org/k8s-c10f2/kube-apiserver:v1.31.1
 podman pull registry.altlinux.org/k8s-c10f2/kube-controller-manager:v1.31.1
@@ -37,6 +45,45 @@ podman pull registry.altlinux.org/k8s-c10f2/flannel-cni-plugin:v1.4.0-flannel1
 podman tag registry.altlinux.org/k8s-c10f2/pause:3.10 registry.k8s.io/pause:3.10
 podman tag registry.altlinux.org/k8s-c10f2/etcd:3.5.15-0 registry.altlinux.org/k8s-c10f2/etcd:3.5.24-0
 
+cat << EOF > /etc/crio/crio.conf
+[crio]
+root = "/var/lib/containers/storage"
+runroot = "/var/run/containers/storage"
+storage_option = [
+        "overlay.override_kernel_check=1",
+]
+log_level = "info"
+
+[crio.api]
+listen = "/var/run/crio/crio.sock"
+
+[crio.runtime]
+conmon = "/usr/bin/conmon"
+cgroup_manager = "systemd"
+default_runtime = "runc"
+
+[crio.runtime.runtimes.runc]
+runtime_path = "/usr/bin/runc"
+runtime_type = "oci"
+
+[crio.image]
+pause_image = "registry.k8s.io/pause:3.10"
+storage_driver = "overlay"
+
+[crio.network]
+network_dir = "/etc/cni/net.d/"
+plugin_dirs = ["/usr/libexec/cni", "/opt/cni/bin"]
+
+[crio.metrics]
+
+[crio.tracing]
+
+[crio.nri]
+
+[crio.stats]
+
+EOF
+
 systemctl enable --now crio kubelet
 
 unset http_proxy
@@ -46,7 +93,8 @@ cat << EOF > init.yml
 apiVersion: kubeadm.k8s.io/v1beta4
 bootstrapTokens:
 - groups:
-  - system:bootstrappers:kubeadm:default-node-tokenttl: "0s"
+  - system:bootstrappers:kubeadm:default-node-token
+  ttl: "0s"
   usages:
   - signing
   - authentication
@@ -216,29 +264,29 @@ data:
       "name": "cbr0",
       "cniVersion": "0.3.1",
       "plugins": [
-      {
-        "type": "flannel",
-        "delegate": {
-          "hairpinMode": true,
-          "isDefaultGateway": true
+        {
+          "type": "flannel",
+          "delegate": {
+            "hairpinMode": true,
+            "isDefaultGateway": true
+          }
+        },
+        {
+          "type": "portmap",
+          "capabilities": {
+            "portMappings": true
+          }
         }
-      },
-      {
-        "type": "portmap",
-        "capabilities": {
-          "portMappings": true
-        }
-      }
-    ]
-  }
-net-conf.json: |
-  {
-    "Network": "10.244.0.0/16",
-    "EnableNFTables": false,
-    "Backend": {
-      "Type": "vxlan"
+      ]
     }
-  }
+  net-conf.json: |
+    {
+      "Network": "10.244.0.0/16",
+      "EnableNFTables": false,
+      "Backend": {
+        "Type": "vxlan"
+      }
+    }
 kind: ConfigMap
 metadata:
   labels:
@@ -282,94 +330,107 @@ spec:
       - args:
         - --ip-masq
         - --kube-subnet-mgr
-    command:
-    - /opt/bin/flanneld
-    env:
-    - name: POD_NAME
-      valueFrom:
-        fieldRef:
-          fieldPath: metadata.name
-    - name: POD_NAMESPACE
-      valueFrom:
-        fieldRef:
-          fieldPath: metadata.namespace
-    - name: EVENT_QUEUE_DEPTH
-      value: "5000"
-    image: registry.altlinux.org/k8s-c10f2/flannel:v0.25.7
-    name: kube-flannel
-    resources:
-      requests:
-        cpu: 100m
-        memory: 50Mi
-    securityContext:
-      capabilities:
-        add:
-        - NET_ADMIN
-        - NET_RAW
-      privileged: false
-    volumeMounts:
-    - mountPath: /run/flannel
-      name: run
-    - mountPath: /etc/kube-flannel/
-      name: flannel-cfg
-    - mountPath: /run/xtables.lock
-      name: xtables-lock
-  hostNetwork: true
-  initContainers:
-  - args:
-    - -f
-    - /flannel
-    - /opt/cni/bin/flannel
-    command:
-    - cp
-    image: registry.altlinux.org/k8s-c10f2/flannel-cni-plugin:v1.4.0-flannel1
-    name: install-cni-plugin
-    volumeMounts:
-    - mountPath: /opt/cni/bin
-      name: cni-plugin
-  - args:
-    - -f
-    - /etc/kube-flannel/cni-conf.json
-    - /etc/cni/net.d/10-flannel.conflist
-    command:
-    - cp
-    image: registry.altlinux.org/k8s-c10f2/flannel:v0.25.7
-    name: install-cni
-    volumeMounts:
-    - mountPath: /etc/cni/net.d
-      name: cni
-    - mountPath: /etc/kube-flannel/
-      name: flannel-cfg
-  priorityClassName: system-node-critical
-  serviceAccountName: flannel
-  tolerations:
-  - effect: NoSchedule
-    operator: Exists
-  volumes:
-  - hostPath:
-      path: /run/flannel
-    name: run
-  - hostPath:
-      path: /opt/cni/bin
-    name: cni-plugin
-  - hostPath:
-      path: /etc/cni/net.d
-    name: cni
-  - configMap:
-      name: kube-flannel-cfg
-    name: flannel-cfg
-  - hostPath:
-    path: /run/xtables.lock
-    type: FileOrCreate
-  name: xtables-lock
+        command:
+        - /opt/bin/flanneld
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: EVENT_QUEUE_DEPTH
+          value: "5000"
+        - name: CONT_WHEN_CACHE_NOT_READY
+          value: "false"
+        image: registry.altlinux.org/k8s-c10f2/flannel:v0.25.7
+        name: kube-flannel
+        resources:
+          requests:
+            cpu: 100m
+            memory: 50Mi
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+          privileged: false
+        volumeMounts:
+        - mountPath: /run/flannel
+          name: run
+        - mountPath: /etc/kube-flannel/
+          name: flannel-cfg
+        - mountPath: /run/xtables.lock
+          name: xtables-lock
+      hostNetwork: true
+      initContainers:
+      - args:
+        - -f
+        - /flannel
+        - /opt/cni/bin/flannel
+        command:
+        - cp
+        image: registry.altlinux.org/k8s-c10f2/flannel-cni-plugin:v1.4.0-flannel1
+        name: install-cni-plugin
+        volumeMounts:
+        - mountPath: /opt/cni/bin
+          name: cni-plugin
+      - args:
+        - -f
+        - /etc/kube-flannel/cni-conf.json
+        - /etc/cni/net.d/10-flannel.conflist
+        command:
+        - cp
+        image: registry.altlinux.org/k8s-c10f2/flannel:v0.25.7
+        name: install-cni
+        volumeMounts:
+        - mountPath: /etc/cni/net.d
+          name: cni
+        - mountPath: /etc/kube-flannel/
+          name: flannel-cfg
+      priorityClassName: system-node-critical
+      serviceAccountName: flannel
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      volumes:
+      - hostPath:
+          path: /run/flannel
+        name: run
+      - hostPath:
+          path: /opt/cni/bin
+        name: cni-plugin
+      - hostPath:
+          path: /etc/cni/net.d
+        name: cni
+      - configMap:
+          name: kube-flannel-cfg
+        name: flannel-cfg
+      - hostPath:
+          path: /run/xtables.lock
+          type: FileOrCreate
+        name: xtables-lock
 EOF
 
 kubectl apply -f kube-flannel.yml
 
 kubectl get cm -n kube-system coredns -o yaml > coredns.yaml
 
-sed -i '/ready/i \ \ \ \ \ \ \ \ rewrite stop {\n\
-   name substring iwplatform.local cluster.local answer
-   auto\n\        }' coredns.yaml
+sed -i '/ready/i \ \ \ \ \ \ \ \ rewrite stop {\n\ \ \ \ \ \ \ \ \ \ \ name substring iwplatform.local cluster.local answer auto\n\ \ \ \ \ \ \ \ }' coredns.yaml
 
 sed -i 's/kubernetes/kubernetes cluster.local/' coredns.yaml
+
+kubectl replace -n kube-system -f coredns.yaml
+kubectl -n kube-system rollout restart deployment coredns
+
+kubectl taint nodes $(hostname) node-role.kubernetes.io/control-plane:NoSchedule-
+
+kubectl get pods -A
+
+export TMPDIR=/var/tmp
+
+apt-get install libbacktrace libpython3 libossp-uuid16 libunwind
+
+

@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [ "$EUID" -ne 0 ]; then
+    echo "Ошибка: Этот скрипт нужно запускать от имени root!"
+    exit 1
+fi
+
+
 read -p "Введите пароль пользователя postgres: " postgres_pass
 
 cat << 'EOF' > /etc/apt/sources.list.d/altsp.list
