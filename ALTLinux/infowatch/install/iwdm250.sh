@@ -35,6 +35,7 @@ podman pull registry.altlinux.org/k8s-c10f2/flannel:v0.25.7
 podman pull registry.altlinux.org/k8s-c10f2/flannel-cni-plugin:v1.4.0-flannel1
 
 podman tag registry.altlinux.org/k8s-c10f2/pause:3.10 registry.k8s.io/pause:3.10
+podman tag registry.altlinux.org/k8s-c10f2/etcd:3.5.15-0 registry.altlinux.org/k8s-c10f2/etcd:3.5.24-0
 
 systemctl enable --now crio kubelet
 
