@@ -533,4 +533,10 @@ systemctl enable --now postgresql
 systemctl restart postgresql
 
 su - postgres -s /bin/bash -c "psql" <<< "ALTER USER postgres PASSWORD '${postgres_pass}';"
+
+cat << EOF > /etc/containers/containers.conf
+[engine]
+runtime = "runc"
+EOF
+
 echo "Скрипт закончил работу"
