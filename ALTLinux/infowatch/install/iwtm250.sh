@@ -53,7 +53,7 @@ chown postgres:postgres /u02/pgdata1
 mkdir -p /u02/arch
 chown postgres:postgres /u02/arch
 
-echo "Вариант оверрайд файла для сервера с 16ГБ ОЗУ выделенной под БД"
+echo "Вариант дополнительного файла конфигурации для сервера с 16ГБ ОЗУ выделенной под БД"
 
 cat << 'EOF' > /u01/postgres/iwtm-postgres.conf
 # --- Подключение, сеть и порты ---

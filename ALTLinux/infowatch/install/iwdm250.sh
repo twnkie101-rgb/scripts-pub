@@ -5,6 +5,7 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+read -p "Введите пароль пользователя postgres: " postgres_pass
 
 cat << 'EOF' > /etc/apt/sources.list.d/altsp.list
 # ALT Certified 10
@@ -432,5 +433,104 @@ kubectl get pods -A
 export TMPDIR=/var/tmp
 
 apt-get install libbacktrace libpython3 libossp-uuid16 libunwind
+ 
+mkdir -p /var/lib/pgsql/data/backups_events
+chown postgres:postgres /var/lib/pgsql/data/backups_events
+chmod 700 /var/lib/pgsql/data/backups_events
+mkdir -p /var/lib/pgsql/data/backups_facts
+chown postgres:postgres /var/lib/pgsql/data/backups_facts
+chmod 700 /var/lib/pgsql/data/backups_facts
+mkdir -p /var/lib/pgsql/data/backups_ds
+chown postgres:postgres /var/lib/pgsql/data/backups_ds
+chmod 700 /var/lib/pgsql/data/backups_ds
 
+echo "Вариант основго файла конфигурации для сервера с 8ГБ ОЗУ выделенной под БД"
 
+cat << 'EOF' > /var/lib/pgsql/data/postgresql.conf
+# --- Подключение, сеть и порты ---
+listen_addresses = '*'
+port = 5432
+max_connections = 100
+password_encryption = 'scram-sha-256'
+
+# --- Настройки TCP Keepalives (для стабильности долгих сессий) ---
+tcp_keepalives_idle = 60              # TCP_KEEPIDLE, в секундах
+tcp_keepalives_interval = 20          # TCP_KEEPINTVL, в секундах
+tcp_keepalives_count = 2              # TCP_KEEPCNT
+
+# --- Распределение памяти и ресурсы ---
+shared_buffers = '2GB'                # 25% от RAM для БД
+effective_cache_size = '4GB'          # 50% от RAM для БД. Ориентир общего кэша для планировщика
+work_mem = '4MB'                      # Память на одну операцию сортировки/соединения
+maintenance_work_mem = '512MB'        # Память для индексов и VACUUM
+temp_buffers = '8MB'                  # Память под временные таблицы
+huge_pages = try                      # Попытка использовать Huge Pages ядра Linux
+max_locks_per_transaction = 512
+
+# --- WAL (Журнал предзаписи) ---
+wal_buffers = '16MB'
+min_wal_size = '2GB'
+max_wal_size = '16GB'
+
+# --- Логирование и сбор статистики ---
+log_min_messages = warning
+logging_collector = on
+log_connections = on
+log_disconnections = on
+log_checkpoints = on
+log_destination = 'stderr'
+log_directory = 'pg_log'
+log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+log_rotation_age = '1d'
+log_rotation_size = '100MB'
+log_min_duration_statement = 120000    # Логировать запросы тяжелее 2 минут (120000 мс)
+log_autovacuum_min_duration = 30000    # Логировать автовакуум, если он шел дольше 30 сек
+shared_preload_libraries = 'pg_stat_statements'
+track_io_timing = on
+track_activity_query_size = 32768      # Размер буфера для текста запросов (требуется перезапуск)
+
+# --- Автовакуум (Очистка и сбор статистики таблиц) ---
+autovacuum_max_workers = 5
+autovacuum_naptime = 20
+autovacuum_freeze_max_age = 200000000
+
+# --- Совместимость, врмененные зоны и локализация ---
+lc_messages = 'en_US.UTF-8'           # Системные ошибки пишем на английском
+constraint_exclusion = off
+standard_conforming_strings = on
+log_timezone = 'UTC'	              # Важно чтобы это значение соответствовало lc_time
+datestyle = 'iso, dmy'
+timezone = 'UTC'
+lc_monetary = 'ru_RU.UTF-8'                     
+lc_numeric = 'ru_RU.UTF-8'
+lc_time = 'ru_RU.UTF-8'
+default_text_search_config = 'pg_catalog.russian'
+
+# --- Системное ---
+dynamic_shared_memory_type = posix
+log_file_mode = 0600
+EOF
+
+cat << EOF > /var/lib/pgsql/data/pg_hba.conf
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# "local" is for Unix domain socket connections only
+local   all             all                                     trust
+# IPv4 local connections:
+host	all		all		127.0.0.1/32		scram-sha-256
+# IPv6 local connections:
+host	all		all		::1/128			scram-sha-256
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+#local   replication     all                                     trust
+#host    replication     all             127.0.0.1/32            trust
+#host    replication     all             ::1/128                 trust
+host	all		all		all			md5
+EOF
+
+systemctl daemon-reload
+systemctl enable --now postgresql
+systemctl restart postgresql
+
+su - postgres -s /bin/bash -c "psql" <<< "ALTER USER postgres PASSWORD '${postgres_pass}';"
+echo "Скрипт закончил работу"
