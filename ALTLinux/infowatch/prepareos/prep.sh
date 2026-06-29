@@ -58,4 +58,9 @@ systemctl enable --now oddjobd
 
 grep -q "pam_mkhomedir.so" "$PAM_FILE" || echo -e "$PAM_LINE" | tee -a "$PAM_FILE" 
 
-#echo "Скрипт выполнен"
+sed -i.bak '/^tmpfs[[:space:]]\+\/tmp/s/^/#/' /etc/fstab
+sed -i.bak -E 's/\b(nosuid|noxattr),//g; s/,\b(nosuid|noxattr)\b//g' /etc/fstab
+
+echo "Скрипт выполнит перезагрузку ОС через 5 секунд"
+sleep 5
+reboot
