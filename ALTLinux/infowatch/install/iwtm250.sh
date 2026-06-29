@@ -57,7 +57,7 @@ echo "Вариант дополнительного файла конфигур�
 
 cat << 'EOF' > /u01/postgres/iwtm-postgres.conf
 # --- Подключение, сеть и порты ---
-listen_addresses = 'localhost'
+listen_addresses = '*'
 port = 5433
 max_connections = 1000            # (требуется перезапуск)
 
