@@ -29,7 +29,7 @@ sysctl -p
 
 apt-get update
 
-apt-get install sudo conntrack-tools socat podman unzip runc python3 python3-module-yaml python3-modules-sqlite3 postgresql15-server postgresql15-contrib postgresql15-python kubernetes1.31-kubeadm kubernetes1.31-kubelet kubernetes1.31-crio cri-tools1.31 libbacktrace libpython3 libossp-uuid16 libunwind -y
+apt-get install sudo conntrack-tools socat podman unzip runc python3 python3-module-yaml python3-modules-sqlite3 postgresql15-server postgresql15-contrib postgresql15-python kubernetes1.31-kubeadm kubernetes1.31-kubelet kubernetes1.31-crio cri-tools1.31 libbacktrace libpython3 libossp-uuid16 libunwind python-modules-json python-modules-distutils python-modules-sqlite3 -y
 
 rm -rf /etc/cni/net.d/*
 
