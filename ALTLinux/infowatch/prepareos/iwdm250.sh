@@ -33,6 +33,8 @@ apt-get install sudo conntrack-tools socat podman unzip runc python3 python3-mod
 
 rm -rf /etc/cni/net.d/*
 
+su - postgres -s /bin/bash -c "initdb"
+
 podman pull registry.altlinux.org/k8s-c10f2/kube-apiserver:v1.31.1
 podman pull registry.altlinux.org/k8s-c10f2/kube-controller-manager:v1.31.1
 podman pull registry.altlinux.org/k8s-c10f2/kube-scheduler:v1.31.1
