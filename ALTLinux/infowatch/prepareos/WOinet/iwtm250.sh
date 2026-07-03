@@ -16,26 +16,8 @@ fi
 
 read -p "Введите пароль пользователя postgres: " postgres_pass
 
-#cat << 'EOF' > /etc/apt/sources.list.d/altsp.list
-## ALT Certified 10
-##rpm [cert8] ftp://update.altsp.su/pub/distributions/ALTLinux c10f2/branch/x86_64 classic gostcrypto
-##rpm [cert8] ftp://update.altsp.su/pub/distributions/ALTLinux c10f2/branch/x86_64-i586 classic
-##rpm [cert8] ftp://update.altsp.su/pub/distributions/ALTLinux c10f2/branch/noarch classic
-#
-#rpm [cert8] http://update.altsp.su/pub/distributions/ALTLinux c10f2/branch/x86_64 classic gostcrypto
-#rpm [cert8] http://update.altsp.su/pub/distributions/ALTLinux c10f2/branch/x86_64-i586 classic
-#rpm [cert8] http://update.altsp.su/pub/distributions/ALTLinux c10f2/branch/noarch classic
-#
-#rpm http://ftp.altlinux.org/pub/distributions/ALTLinux p10/branch/x86_64 classic
-#rpm http://ftp.altlinux.org/pub/distributions/ALTLinux p10/branch/noarch classic
-#rpm http://ftp.altlinux.org/pub/distributions/ALTLinux p10/branch/x86_64-i586 classic
-#EOF
-
 apt-get update
 apt-get -y install postgresql15-contrib pgagent -y
-
-systemctl stop postgresql.service
-systemctl stop pgagent
 
 mkdir /etc/systemd/system/postgresql.service.d/
 cat << 'EOF' > /etc/systemd/system/postgresql.service.d/override.conf
@@ -133,7 +115,6 @@ sed -i '/replication/s/^/# /' /u01/postgres/pg_hba.conf
 
 systemctl enable postgresql.service
 systemctl start postgresql.service
-systemctl status postgresql.service
 
 su - postgres -s /bin/bash -c "psql -p 5433" <<< "ALTER USER postgres PASSWORD '${postgres_pass}';"
 
