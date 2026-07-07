@@ -30,7 +30,7 @@ SSH_FILE="/etc/openssh/sshd_config"
 cat << 'EOF' > /etc/apt/sources.list.d/sources.list
 
 #rpm cdrom:[ALT SP Server 10.2.2 11100-01 x86_64 build 2025-12-03]/ ALTLinux main
-rpm file:/opt/repo x86_64 classic
+rpm file:/opt/repo x86_64 base
 EOF
 
 rm -rf /opt/repo.tar.gz

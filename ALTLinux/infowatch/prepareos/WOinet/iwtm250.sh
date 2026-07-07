@@ -217,3 +217,4 @@ sed -i "s/^host[[:space:]]\+all[[:space:]]\+all[[:space:]]\+::1\/128[[:space:]]\
 
 systemctl restart postgresql
 systemctl restart pgagent
+echo "Скрипт завершил работу"
