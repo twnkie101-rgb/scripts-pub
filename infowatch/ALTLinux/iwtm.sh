@@ -110,8 +110,8 @@ sed -i "s|host[[:space:]]*all[[:space:]]*all[[:space:]]*::1/128[[:space:]]*ident
 sed -i '/replication/s/^/# /' /u01/postgres/pg_hba.conf
 
 # Подключение к БД только локальное?
-#echo "# Enable not local access" >> /u01/postgres/pg_hba.conf
-#echo -e "host\tpostgres\tall\t\t0.0.0.0/0\t\tmd5" >> /u01/postgres/pg_hba.conf
+echo "# Enable not local access" >> /u01/postgres/pg_hba.conf
+echo -e "host\tpostgres\tall\t\t0.0.0.0/0\t\tmd5" >> /u01/postgres/pg_hba.conf
 
 systemctl enable postgresql.service
 systemctl start postgresql.service
@@ -194,8 +194,8 @@ EnvironmentFile=/etc/pgagent/pgagent.conf
 # This is normally controlled by the global default set by systemd
 # StandardOutput=syslog
 # Disable OOM kill on the postmaster
-OOMScoreAdjust=-1000
-ExecStart=/usr/bin/pgagent -s ${LOGFILE} hostaddr=${DBHOST} dbname=${DBNAME} user=${DBUSER} port=${DBPORT}
+OOMScoreAdjust=-100
+ExecStart=/usr/bin/pgagent -l 0 -s ${LOGFILE} hostaddr=${DBHOST} dbname=${DBNAME} user=${DBUSER} port=${DBPORT}
 KillMode=mixed
 KillSignal=SIGINT
 Restart=on-failure
@@ -209,12 +209,13 @@ systemctl daemon-reload
 systemctl enable pgagent
 systemctl start pgagent
 
-sed -i "s/^local[[:space:]]\+all[[:space:]]\+all[[:space:]]\+trust/local\tall\t\tall\t\t\t\t\tmd5/" /u01/postgres/pg_hba.conf
-
-sed -i "s/^host[[:space:]]\+all[[:space:]]\+all[[:space:]]\+127.0.0.1\/32[[:space:]]\+trust/host\tall\t\tall\t\t127.0.0.1\/32\t\tmd5/" /u01/postgres/pg_hba.conf
-
-sed -i "s/^host[[:space:]]\+all[[:space:]]\+all[[:space:]]\+::1\/128[[:space:]]\+trust/host\tall\t\tall\t\t::1\/128\t\t\tmd5/" /u01/postgres/pg_hba.conf
-
-systemctl restart postgresql
-systemctl restart pgagent
+# Если требуется запретить траст
+#sed -i "s/^local[[:space:]]\+all[[:space:]]\+all[[:space:]]\+trust/local\tall\t\tall\t\t\t\t\tmd5/" /u01/postgres/pg_hba.conf
+#
+#sed -i "s/^host[[:space:]]\+all[[:space:]]\+all[[:space:]]\+127.0.0.1\/32[[:space:]]\+trust/host\tall\t\tall\t\t127.0.0.1\/32\t\tmd5/" /u01/postgres/pg_hba.conf
+#
+#sed -i "s/^host[[:space:]]\+all[[:space:]]\+all[[:space:]]\+::1\/128[[:space:]]\+trust/host\tall\t\tall\t\t::1\/128\t\t\tmd5/" /u01/postgres/pg_hba.conf
+#
+#systemctl restart postgresql
+#systemctl restart pgagent
 echo "Скрипт завершил работу"

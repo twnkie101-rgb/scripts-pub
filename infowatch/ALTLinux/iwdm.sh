@@ -5,18 +5,14 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+repo_path="/opt/repo"
+
+if [[ ! -f "$repo_path/x86_64/base/release" ]]; then
+    echo "Ошибка: локальный репозиторий поврежден или не примонтирован."
+    exit 1
+fi
+
 read -p "Введите пароль пользователя postgres: " postgres_pass
-
-cat << 'EOF' > /etc/apt/sources.list.d/altsp.list
-# ALT Certified 10
-#rpm [cert8] ftp://update.altsp.su/pub/distributions/ALTLinux c10f2/branch/x86_64 classic gostcrypto
-#rpm [cert8] ftp://update.altsp.su/pub/distributions/ALTLinux c10f2/branch/x86_64-i586 classic
-#rpm [cert8] ftp://update.altsp.su/pub/distributions/ALTLinux c10f2/branch/noarch classic
-
-rpm [cert8] http://update.altsp.su/pub/distributions/ALTLinux c10f2/branch/x86_64 classic gostcrypto
-rpm [cert8] http://update.altsp.su/pub/distributions/ALTLinux c10f2/branch/x86_64-i586 classic
-rpm [cert8] http://update.altsp.su/pub/distributions/ALTLinux c10f2/branch/noarch classic
-EOF
 
 cat << 'EOF' >> /etc/sysctl.conf
 fs.inotify.max_user_instances = 16384
@@ -29,26 +25,60 @@ sysctl -p
 
 apt-get update
 
-apt-get install sudo conntrack-tools socat podman unzip runc python3 python3-module-yaml python3-modules-sqlite3 postgresql15-server postgresql15-contrib postgresql15-python kubernetes1.31-kubeadm kubernetes1.31-kubelet kubernetes1.31-crio cri-tools1.31 libbacktrace libpython3 libossp-uuid16 libunwind -y
+apt-get install sudo conntrack-tools socat podman unzip runc python-modules-sqlite3 python3 python3-module-yaml python3-modules-sqlite3 postgresql15-server postgresql15-contrib postgresql15-python kubernetes1.31-kubeadm kubernetes1.31-kubelet kubernetes1.31-crio cri-tools1.31 libbacktrace libpython3 libossp-uuid16 libunwind samba samba-client smbclient -y
 
 rm -rf /etc/cni/net.d/*
 
 su - postgres -s /bin/bash -c "initdb -D /var/lib/pgsql/data"
 
-podman pull registry.altlinux.org/k8s-c10f2/kube-apiserver:v1.31.1
-podman pull registry.altlinux.org/k8s-c10f2/kube-controller-manager:v1.31.1
-podman pull registry.altlinux.org/k8s-c10f2/kube-scheduler:v1.31.1
-podman pull registry.altlinux.org/k8s-c10f2/kube-proxy:v1.31.1
-podman pull registry.altlinux.org/k8s-c10f2/pause:3.10
-podman pull registry.altlinux.org/k8s-c10f2/etcd:3.5.15-0
-podman pull registry.altlinux.org/k8s-c10f2/coredns:v1.11.3
-podman pull registry.altlinux.org/k8s-c10f2/flannel:v0.25.7
-podman pull registry.altlinux.org/k8s-c10f2/flannel-cni-plugin:v1.4.0-flannel1
+# Это ваниант для онлайн загрузки образов
+#podman pull registry.altlinux.org/k8s-c10f2/kube-apiserver:v1.31.1
+#podman pull registry.altlinux.org/k8s-c10f2/kube-controller-manager:v1.31.1
+#podman pull registry.altlinux.org/k8s-c10f2/kube-scheduler:v1.31.1
+#podman pull registry.altlinux.org/k8s-c10f2/kube-proxy:v1.31.1
+#podman pull registry.altlinux.org/k8s-c10f2/pause:3.10
+#podman pull registry.altlinux.org/k8s-c10f2/etcd:3.5.15-0
+#podman pull registry.altlinux.org/k8s-c10f2/coredns:v1.11.3
+#podman pull registry.altlinux.org/k8s-c10f2/flannel:v0.25.7
+#podman pull registry.altlinux.org/k8s-c10f2/flannel-cni-plugin:v1.4.0-flannel1
 
-podman tag registry.altlinux.org/k8s-c10f2/pause:3.10 registry.k8s.io/pause:3.10
-podman tag registry.altlinux.org/k8s-c10f2/etcd:3.5.15-0 registry.altlinux.org/k8s-c10f2/etcd:3.5.24-0
+#podman tag registry.altlinux.org/k8s-c10f2/pause:3.10 registry.k8s.io/pause:3.10
+#podman tag registry.altlinux.org/k8s-c10f2/etcd:3.5.15-0 registry.altlinux.org/k8s-c10f2/etcd:3.5.24-0
+
+# Это вариант для оффлайн загрузки образов из архива с соответствующим названием
+podman load -i kubik.tar
+
+podman tag registry.k8s.io/pause:3.10 registry.altlinux.org/k8s-c10f2/pause:3.10
 
 swapoff -a
+
+OPENSSL_CONF="/etc/openssl/openssl.cnf"
+
+# Добавляем openssl_conf = default_conf после oid_section,
+# если строки еще нет
+if ! grep -q '^openssl_conf[[:space:]]*=[[:space:]]*default_conf$' "$OPENSSL_CONF"; then
+    sed -i '/^oid_section[[:space:]]*=.*new_oids/a\
+\
+# System default\
+openssl_conf = default_conf
+' "$OPENSSL_CONF"
+fi
+
+# Добавляем секцию в конец файла, если ее еще нет
+if ! grep -q '^\[default_conf\]' "$OPENSSL_CONF"; then
+cat <<'EOF' >> "$OPENSSL_CONF"
+
+[default_conf]
+ssl_conf = ssl_sect
+
+[ssl_sect]
+system_default = system_default_sect
+
+[system_default_sect]
+MinProtocol = TLSv1.2
+CipherString = DEFAULT:@SECLEVEL=1
+EOF
+fi
 
 cat << EOF > /etc/crio/crio.conf
 [crio]
@@ -197,6 +227,11 @@ imageGCLowThresholdPercent: 99
 EOF
 
 kubeadm init --config init.yml
+
+if [ $? -ne 0 ]; then
+	echo "kubeadm init failed"
+	exit 1
+fi
 
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
@@ -431,8 +466,6 @@ kubectl replace -n kube-system -f coredns.yaml
 kubectl -n kube-system rollout restart deployment coredns
 
 kubectl taint nodes $(hostname) node-role.kubernetes.io/control-plane:NoSchedule-
-
-kubectl get pods -A
 
 export TMPDIR=/var/tmp
  

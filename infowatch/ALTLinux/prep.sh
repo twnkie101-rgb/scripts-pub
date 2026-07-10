@@ -20,8 +20,6 @@ domain=$(hostname -d)
 realm=${domain%%.*}
 realm_upper=${realm^^}
 read -p "Введите имя локального администратора: " localadmin
-read -p "Введите имя администратора домена: " admin_name
-read -p "Введите пароль админитратора домена: " admin_pass
 
 PAM_FILE="/etc/pam.d/system-auth"
 PAM_LINE="session\trequired\tpam_mkhomedir.so skel=/etc/skel umask=0077"
@@ -44,14 +42,32 @@ sed -i -E 's/^#?PermitEmptyPasswords.*/PermitEmptyPasswords no/' "$SSH_FILE"
 apt-get update 
 apt-get install sudo task-auth-ad-sssd oddjob-mkhomedir -y 
 
+join_domain() {
+	read -p "Введите имя администратора домена: " admin_name
+	read -p "Введите пароль админитратора домена: " admin_pass
+	echo -e "${admin_name}@${domain} ALL=(ALL:ALL) ALL" | tee -a /etc/sudoers 
+	system-auth write ad "$domain" "$host" "$realm_upper" "$admin_name" "$admin_pass" 
+	systemctl enable --now oddjobd 
+}
+
+read -p "Потребуется ли вводить сервер в домен? [Y/n]: " req_domain
+
+case "${req_domain,,}" in
+	""|"y"|"yes")
+		join_domain
+		;;
+	"n"|"no")
+		echo "Пропускаем ввод в домен"
+		;;
+	*)
+		echo "Ошибка: неверный ответ"
+		exit 1
+		;;
+esac
+
 echo "WHEEL_USERS ALL=(ALL:ALL) ALL" | tee -a /etc/sudoers 
-echo -e "${admin_name}@${domain} ALL=(ALL:ALL) ALL" | tee -a /etc/sudoers 
 
 usermod -aG wheel $localadmin
-
-system-auth write ad "$domain" "$host" "$realm_upper" "$admin_name" "$admin_pass" 
-
-systemctl enable --now oddjobd 
 
 grep -q "pam_mkhomedir.so" "$PAM_FILE" || echo -e "$PAM_LINE" | tee -a "$PAM_FILE" 
 
