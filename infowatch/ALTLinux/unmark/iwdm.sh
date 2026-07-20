@@ -34,8 +34,6 @@ su - postgres -s /bin/bash -c "initdb"
 
 systemctl restart postgresql
 
-#podman load -i kubik.tar
-
 if ! grep -q '^openssl_conf[[:space:]]*=[[:space:]]*default_conf$' "$OPENSSL_CONF"; then
     sed -i '/^oid_section[[:space:]]*=.*new_oids/a\
 \
@@ -59,7 +57,7 @@ CipherString = DEFAULT:@SECLEVEL=1
 EOF
 fi
 
-echo "Вариант основго файла конфигурации для сервера с 8ГБ ОЗУ выделенной под БД"
+echo "Вариант основго файла конфигурации для сервера с 10ГБ ОЗУ выделенной под БД"
 
 cat << 'EOF' > /var/lib/pgsql/data/postgresql.conf
 # --- Подключение, сеть и порты ---
@@ -74,10 +72,10 @@ tcp_keepalives_interval = 20          # TCP_KEEPINTVL, в секундах
 tcp_keepalives_count = 2              # TCP_KEEPCNT
 
 # --- Распределение памяти и ресурсы ---
-shared_buffers = '2GB'                # 25% от RAM для БД
-effective_cache_size = '4GB'          # 50% от RAM для БД. Ориентир общего кэша для планировщика
-work_mem = '4MB'                      # Память на одну операцию сортировки/соединения
-maintenance_work_mem = '512MB'        # Память для индексов и VACUUM
+shared_buffers = '3GB'                # 25% от RAM для БД
+effective_cache_size = '7GB'          # 50% от RAM для БД. Ориентир общего кэша для планировщика
+work_mem = '32MB'                     # Память на одну операцию сортировки/соединения. 32М рекомендовано для DM
+maintenance_work_mem = '1GB'        # Память для индексов и VACUUM
 temp_buffers = '8MB'                  # Память под временные таблицы
 huge_pages = try                      # Попытка использовать Huge Pages ядра Linux
 max_locks_per_transaction = 512
@@ -113,7 +111,7 @@ autovacuum_freeze_max_age = 200000000
 lc_messages = 'en_US.UTF-8'           # Системные ошибки пишем на английском
 constraint_exclusion = off
 standard_conforming_strings = on
-log_timezone = 'UTC'	              # Важно чтобы это значение соответствовало lc_time
+log_timezone = 'UTC'
 datestyle = 'iso, dmy'
 timezone = 'UTC'
 lc_monetary = 'ru_RU.UTF-8'                     
@@ -140,7 +138,7 @@ host	all		all		::1/128			trust
 #local   replication     all                                     trust
 #host    replication     all             127.0.0.1/32            trust
 #host    replication     all             ::1/128                 trust
-host	all		all		all			md5
+host	all		all		0.0.0.0/0		md5
 EOF
 
 systemctl daemon-reload
