@@ -1,0 +1,22 @@
+# This file is just an example
+skip_check_space=1
+product_type=tme
+installation_type=distributed
+template_database=1
+template_indexer=1
+template_web=1
+template_interceptors=0
+product_language=rus
+use_data_storage=1
+ds_set_host=iwds
+ds_set_port=40731
+# Не забываем указывать токен DS тут
+ds_set_token={токен}
+eula=accept
+db_type=postgresql
+# Тут можно указать IP сервера, на котором будет расположена база данных. Если БД устанавливается на текущий сервер то использовать нужно именно ВНЕШНИЙ IP текущего сервера
+db_server_address=externalIPDBservers
+db_server_port=5433
+db_name=iwtm
+ntp_mode=ntp_manual_addr
+sphinx_exact_match_words=1

@@ -1,0 +1,11 @@
+# This file is just an example
+skip_check_space=1
+product_type=tme
+installation_type=distributed
+template_database=0
+template_indexer=0
+template_web=0
+template_interceptors=1
+product_language=rus
+eula=accept
+ntp_mode=ntp_manual_addr
