@@ -15,7 +15,7 @@ fi
 
 cat << 'EOF' >> /etc/sysctl.conf
 fs.inotify.max_user_instances = 16384
-fs.inotify.max_user_watches = 32768
+fs.inotify.max_user_watches = 524288
 fs.inotify.max_queued_events = 262144
 fs.file-max = 500000
 EOF
